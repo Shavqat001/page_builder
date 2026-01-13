@@ -6,17 +6,9 @@ function updateCode() {
     let css = '';
     const classStyles = {};
 
-    elements.forEach(el => {
-        // Собираем HTML
-        let attrs = '';
-        if (el.classes.length > 0) {
-            attrs += ` class="${el.classes.join(' ')}"`;
-        }
-        Object.keys(el.attributes).forEach(key => {
-            attrs += ` ${key}="${el.attributes[key]}"`;
-        });
-
-        // Собираем стили для классов
+    // Функция для сбора всех стилей из элемента и его дочерних элементов
+    function collectStyles(el) {
+        // Собираем стили для классов текущего элемента
         if (el.classes.length > 0 && Object.keys(el.styles).length > 0) {
             el.classes.forEach(cls => {
                 if (!classStyles[cls]) {
@@ -25,17 +17,58 @@ function updateCode() {
                 Object.assign(classStyles[cls], el.styles);
             });
         }
-
-        // Генерируем HTML
-        if (el.tag === 'img') {
-            html += `    <img${attrs}>\n`;
-        } else if (el.tag === 'input' || el.tag === 'textarea') {
-            html += `    <${el.tag}${attrs}></${el.tag}>\n`;
-        } else if (el.tag === 'ul' || el.tag === 'ol') {
-            html += `    <${el.tag}${attrs}>\n        <li>Элемент списка</li>\n    </${el.tag}>\n`;
-        } else {
-            html += `    <${el.tag}${attrs}>${el.text}</${el.tag}>\n`;
+        
+        // Рекурсивно обрабатываем дочерние элементы
+        if (el.children && el.children.length > 0) {
+            el.children.forEach(child => {
+                collectStyles(child);
+            });
         }
+    }
+
+    function generateElementHTML(el, indent = 4) {
+        const indentStr = ' '.repeat(indent);
+        let attrs = '';
+        if (el.classes.length > 0) {
+            attrs += ` class="${el.classes.join(' ')}"`;
+        }
+        Object.keys(el.attributes).forEach(key => {
+            attrs += ` ${key}="${el.attributes[key]}"`;
+        });
+
+        const voidElements = ['img', 'input', 'br', 'hr'];
+        const textOnlyElements = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'a', 'label', 'button'];
+        
+        // Генерируем HTML с учетом дочерних элементов
+        if (voidElements.includes(el.tag)) {
+            return `${indentStr}<${el.tag}${attrs}>\n`;
+        } else if (el.tag === 'textarea') {
+            return `${indentStr}<${el.tag}${attrs}></${el.tag}>\n`;
+        } else if (el.children && el.children.length > 0) {
+            // Элемент имеет дочерние элементы
+            let result = `${indentStr}<${el.tag}${attrs}>\n`;
+            el.children.forEach(child => {
+                result += generateElementHTML(child, indent + 4);
+            });
+            result += `${indentStr}</${el.tag}>\n`;
+            return result;
+        } else if (el.tag === 'ul' || el.tag === 'ol') {
+            let result = `${indentStr}<${el.tag}${attrs}>\n`;
+            result += `${' '.repeat(indent + 4)}<li>Элемент списка</li>\n`;
+            result += `${indentStr}</${el.tag}>\n`;
+            return result;
+        } else {
+            return `${indentStr}<${el.tag}${attrs}>${el.text}</${el.tag}>\n`;
+        }
+    }
+
+    // Собираем стили из всех элементов (включая вложенные)
+    elements.forEach(el => {
+        collectStyles(el);
+    });
+
+    elements.forEach(el => {
+        html += generateElementHTML(el);
     });
 
     // Генерируем CSS
@@ -47,8 +80,8 @@ function updateCode() {
         css += `.${cls} {\n${styleStr}\n}\n\n`;
     });
 
-    // Если есть inline стили, добавляем их как классы
-    elements.forEach(el => {
+    // Если есть inline стили, добавляем их как классы (рекурсивно)
+    function addInlineStyles(el) {
         if (Object.keys(el.styles).length > 0 && el.classes.length === 0) {
             const styleId = `style-${el.id}`;
             const styleStr = Object.keys(el.styles).map(key =>
@@ -58,6 +91,15 @@ function updateCode() {
             // Обновляем HTML с классом
             html = html.replace(`<${el.tag}`, `<${el.tag} class="${styleId}"`);
         }
+        if (el.children && el.children.length > 0) {
+            el.children.forEach(child => {
+                addInlineStyles(child);
+            });
+        }
+    }
+    
+    elements.forEach(el => {
+        addInlineStyles(el);
     });
 
     const fullCode = `<!DOCTYPE html>

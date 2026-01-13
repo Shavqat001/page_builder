@@ -22,6 +22,18 @@ function getDefaultText(tag) {
     return defaults[tag] || `Элемент ${tag}`;
 }
 
+// Определяет, может ли элемент содержать другие элементы
+function canContainChildren(tag) {
+    // Элементы, которые НЕ могут содержать другие элементы
+    const voidElements = ['img', 'input', 'textarea', 'br', 'hr', 'meta', 'link'];
+    
+    // Элементы, которые могут содержать только текст (не другие элементы)
+    const textOnlyElements = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'a', 'label', 'button'];
+    
+    // Все остальные элементы могут содержать другие элементы
+    return !voidElements.includes(tag) && !textOnlyElements.includes(tag);
+}
+
 function addElement(tag) {
     const element = {
         id: `el-${elementCounter++}`,
@@ -29,7 +41,8 @@ function addElement(tag) {
         text: getDefaultText(tag),
         classes: [],
         styles: {},
-        attributes: {}
+        attributes: {},
+        children: []
     };
 
     // Специальные атрибуты для некоторых элементов
@@ -43,7 +56,12 @@ function addElement(tag) {
         element.attributes.placeholder = 'Введите текст';
     }
 
+    // Просто добавляем элемент в массив
+    if (!element.children) {
+        element.children = [];
+    }
     elements.push(element);
+
     renderPreview();
     selectElement(element);
     updateCode();
@@ -67,19 +85,24 @@ function renderPreview() {
     }
 
     preview.innerHTML = '';
-    elements.forEach(el => {
-        const div = document.createElement('div');
-        div.className = 'preview-item';
-        div.dataset.id = el.id;
-        if (selectedElement && selectedElement.id === el.id) {
-            div.classList.add('selected');
+    
+    // Функция для проверки, является ли элемент дочерним
+    function isChildElement(elementId) {
+        function checkInChildren(parent) {
+            if (!parent.children) return false;
+            for (let child of parent.children) {
+                if (child.id === elementId) return true;
+                if (checkInChildren(child)) return true;
+            }
+            return false;
         }
-
-        div.onclick = (e) => {
-            e.stopPropagation();
-            selectElement(el);
-        };
-
+        for (let el of elements) {
+            if (checkInChildren(el)) return true;
+        }
+        return false;
+    }
+    
+    function renderElement(el, isChild = false) {
         // Создаем реальный элемент
         const realEl = document.createElement(el.tag);
 
@@ -98,15 +121,24 @@ function renderPreview() {
             realEl.setAttribute(key, el.attributes[key]);
         });
 
-        // Добавляем текст (если не img, input и т.д.)
-        if (!['img', 'input', 'textarea'].includes(el.tag)) {
-            if (el.tag === 'ul' || el.tag === 'ol') {
-                const li = document.createElement('li');
-                li.textContent = 'Элемент списка';
-                realEl.appendChild(li);
-            } else {
-                realEl.textContent = el.text;
-            }
+        // Добавляем дочерные элементы (если есть) - они будут добавлены как preview-item
+        // Но сначала создадим контейнер для них
+        if (el.children && el.children.length > 0) {
+            const childrenContainer = document.createElement('div');
+            childrenContainer.className = 'children-container';
+            el.children.forEach(child => {
+                const childDiv = renderElement(child, true);
+                childrenContainer.appendChild(childDiv);
+            });
+            realEl.appendChild(childrenContainer);
+        }
+
+        // Добавляем текст только если нет дочерних элементов
+        const voidElements = ['img', 'input', 'textarea', 'br', 'hr'];
+        const textOnlyElements = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'a', 'label', 'button'];
+        
+        if (voidElements.includes(el.tag)) {
+            // void элементы не имеют текстового содержимого
         } else if (el.tag === 'input' || el.tag === 'textarea') {
             if (el.attributes.placeholder) {
                 realEl.placeholder = el.attributes.placeholder;
@@ -114,11 +146,56 @@ function renderPreview() {
             if (el.attributes.value) {
                 realEl.value = el.attributes.value;
             }
+        } else if (el.tag === 'ul' || el.tag === 'ol') {
+            // Для списков добавляем один li по умолчанию, если нет дочерних
+            if (!el.children || el.children.length === 0) {
+                const li = document.createElement('li');
+                li.textContent = 'Элемент списка';
+                realEl.appendChild(li);
+            }
+        } else if (textOnlyElements.includes(el.tag) || (!el.children || el.children.length === 0)) {
+            realEl.textContent = el.text;
         }
 
+        // Оборачиваем в div для превью
+        const div = document.createElement('div');
+        div.className = 'preview-item';
+        if (isChild) {
+            div.classList.add('nested-item');
+        }
+        div.dataset.id = el.id;
+        if (selectedElement && selectedElement.id === el.id) {
+            div.classList.add('selected');
+        }
+
+        div.onclick = (e) => {
+            e.stopPropagation();
+            selectElement(el);
+        };
+
         div.appendChild(realEl);
-        preview.appendChild(div);
+        
+        // Делаем элемент перетаскиваемым
+        if (typeof makeElementDraggable === 'function') {
+            makeElementDraggable(div, el);
+        }
+        
+        return div;
+    }
+
+    // Рендерим только элементы верхнего уровня (не дочерные)
+    elements.forEach(el => {
+        if (!isChildElement(el.id)) {
+            const div = renderElement(el);
+            preview.appendChild(div);
+        }
     });
+}
+
+function deselectAll() {
+    selectedElement = null;
+    renderPreview();
+    renderProperties();
 }
 
 function selectElement(element) {
@@ -287,7 +364,24 @@ function updateAttribute(key, value) {
 
 function deleteElement() {
     if (!selectedElement) return;
+    
+    // Функция для рекурсивного поиска и удаления элемента из всех вложенных структур
+    function removeFromChildren(parent, targetId) {
+        if (!parent.children) return;
+        parent.children = parent.children.filter(child => child.id !== targetId);
+        parent.children.forEach(child => {
+            removeFromChildren(child, targetId);
+        });
+    }
+    
+    // Удаляем элемент из основного массива
     elements = elements.filter(el => el.id !== selectedElement.id);
+    
+    // Удаляем из дочерних элементов всех родительских элементов (рекурсивно)
+    elements.forEach(el => {
+        removeFromChildren(el, selectedElement.id);
+    });
+    
     selectedElement = null;
     renderPreview();
     renderProperties();

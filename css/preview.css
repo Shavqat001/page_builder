@@ -15,6 +15,11 @@
     border: 2px dashed transparent;
     border-radius: 4px;
     transition: all 0.2s;
+    cursor: grab;
+}
+
+.preview-item:active {
+    cursor: grabbing;
 }
 
 .preview-item:hover {
@@ -28,6 +33,10 @@
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
 }
 
+.preview-item.dragging {
+    opacity: 0.5;
+}
+
 .empty-state {
     text-align: center;
     padding: 60px 20px;
@@ -39,4 +48,43 @@
     height: 64px;
     margin-bottom: 20px;
     opacity: 0.5;
+}
+
+.drop-indicator {
+    position: absolute;
+    height: 3px;
+    background: #3b82f6;
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 1000;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+    transition: all 0.1s;
+}
+
+.drop-zone {
+    min-height: 20px;
+    border: 2px dashed transparent;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.drop-zone.drag-over {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.children-container {
+    margin-left: 20px;
+    margin-top: 8px;
+    border-left: 2px dashed rgba(59, 130, 246, 0.3);
+    padding-left: 12px;
+}
+
+.nested-item {
+    margin: 4px 0;
+    opacity: 0.95;
+}
+
+.nested-item:hover {
+    opacity: 1;
 }

@@ -8,10 +8,14 @@
     color: white;
     border: none;
     border-radius: 8px;
-    cursor: pointer;
+    cursor: grab;
     font-size: 14px;
     transition: all 0.2s;
     text-align: left;
+}
+
+.btn:active {
+    cursor: grabbing;
 }
 
 .btn:hover {
