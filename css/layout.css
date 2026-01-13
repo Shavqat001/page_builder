@@ -1,0 +1,36 @@
+/* Layout компоненты */
+
+.container {
+    max-width: 1600px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 300px 1fr 350px;
+    height: calc(100vh - 40px);
+}
+
+.sidebar {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 20px;
+    overflow-y: auto;
+    border-right: 2px solid #334155;
+}
+
+.preview-area {
+    background: #f8fafc;
+    padding: 20px;
+    overflow-y: auto;
+    position: relative;
+}
+
+.properties-panel {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 20px;
+    overflow-y: auto;
+    border-left: 2px solid #334155;
+}

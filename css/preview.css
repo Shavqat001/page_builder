@@ -1,0 +1,42 @@
+/* Стили для области превью */
+
+#preview {
+    min-height: 100%;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.preview-item {
+    position: relative;
+    margin: 8px 0;
+    padding: 8px;
+    border: 2px dashed transparent;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.preview-item:hover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+
+.preview-item.selected {
+    border-color: #2563eb;
+    background: #dbeafe;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #64748b;
+}
+
+.empty-state svg {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
