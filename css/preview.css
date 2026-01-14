@@ -73,13 +73,6 @@
     background: rgba(59, 130, 246, 0.1);
 }
 
-.children-container {
-    margin-left: 20px;
-    margin-top: 8px;
-    border-left: 2px dashed rgba(59, 130, 246, 0.3);
-    padding-left: 12px;
-}
-
 .nested-item {
     margin: 4px 0;
     opacity: 0.95;

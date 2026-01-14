@@ -1,5 +1,3 @@
-// Утилиты для работы с цветами и копированием
-
 function rgbToHex(rgb) {
     if (!rgb || rgb.startsWith('#')) return rgb || '#000000';
     const match = rgb.match(/\d+/g);
@@ -10,13 +8,11 @@ function rgbToHex(rgb) {
         return hex.length === 1 ? '0' + hex : hex;
     }).join('');
 }
-
 function copyCode() {
     const code = document.getElementById('codeOutput');
     code.select();
     code.setSelectionRange(0, 99999);
     document.execCommand('copy');
-
     const btn = event.target;
     const originalText = btn.textContent;
     btn.textContent = '✓ Скопировано!';

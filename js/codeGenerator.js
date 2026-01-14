@@ -1,14 +1,11 @@
-// Генерация HTML и CSS кода
-
 function updateCode() {
     const elements = getElements();
     let html = '';
     let css = '';
     const classStyles = {};
 
-    // Функция для сбора всех стилей из элемента и его дочерних элементов
     function collectStyles(el) {
-        // Собираем стили для классов текущего элемента
+
         if (el.classes.length > 0 && Object.keys(el.styles).length > 0) {
             el.classes.forEach(cls => {
                 if (!classStyles[cls]) {
@@ -17,8 +14,7 @@ function updateCode() {
                 Object.assign(classStyles[cls], el.styles);
             });
         }
-        
-        // Рекурсивно обрабатываем дочерние элементы
+
         if (el.children && el.children.length > 0) {
             el.children.forEach(child => {
                 collectStyles(child);
@@ -38,14 +34,13 @@ function updateCode() {
 
         const voidElements = ['img', 'input', 'br', 'hr'];
         const textOnlyElements = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'a', 'label', 'button'];
-        
-        // Генерируем HTML с учетом дочерних элементов
+
         if (voidElements.includes(el.tag)) {
             return `${indentStr}<${el.tag}${attrs}>\n`;
         } else if (el.tag === 'textarea') {
             return `${indentStr}<${el.tag}${attrs}></${el.tag}>\n`;
         } else if (el.children && el.children.length > 0) {
-            // Элемент имеет дочерние элементы
+
             let result = `${indentStr}<${el.tag}${attrs}>\n`;
             el.children.forEach(child => {
                 result += generateElementHTML(child, indent + 4);
@@ -62,7 +57,6 @@ function updateCode() {
         }
     }
 
-    // Собираем стили из всех элементов (включая вложенные)
     elements.forEach(el => {
         collectStyles(el);
     });
@@ -71,7 +65,6 @@ function updateCode() {
         html += generateElementHTML(el);
     });
 
-    // Генерируем CSS
     Object.keys(classStyles).forEach(cls => {
         const styles = classStyles[cls];
         const styleStr = Object.keys(styles).map(key =>
@@ -80,7 +73,6 @@ function updateCode() {
         css += `.${cls} {\n${styleStr}\n}\n\n`;
     });
 
-    // Если есть inline стили, добавляем их как классы (рекурсивно)
     function addInlineStyles(el) {
         if (Object.keys(el.styles).length > 0 && el.classes.length === 0) {
             const styleId = `style-${el.id}`;
@@ -88,7 +80,7 @@ function updateCode() {
                 `  ${key}: ${el.styles[key]};`
             ).join('\n');
             css += `.${styleId} {\n${styleStr}\n}\n\n`;
-            // Обновляем HTML с классом
+
             html = html.replace(`<${el.tag}`, `<${el.tag} class="${styleId}"`);
         }
         if (el.children && el.children.length > 0) {
@@ -97,7 +89,6 @@ function updateCode() {
             });
         }
     }
-    
     elements.forEach(el => {
         addInlineStyles(el);
     });
