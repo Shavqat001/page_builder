@@ -1,6 +1,52 @@
 let elements = [];
 let selectedElement = null;
 let elementCounter = 0;
+
+function saveToLocalStorage() {
+    try {
+        localStorage.setItem('pageBuilder_elements', JSON.stringify(elements));
+        localStorage.setItem('pageBuilder_elementCounter', elementCounter.toString());
+        if (selectedElement) {
+            localStorage.setItem('pageBuilder_selectedElementId', selectedElement.id);
+        } else {
+            localStorage.removeItem('pageBuilder_selectedElementId');
+        }
+    } catch (e) {
+        console.error('Failed to save to localStorage:', e);
+    }
+}
+
+function loadFromLocalStorage() {
+    try {
+        const savedElements = localStorage.getItem('pageBuilder_elements');
+        const savedCounter = localStorage.getItem('pageBuilder_elementCounter');
+        const savedSelectedId = localStorage.getItem('pageBuilder_selectedElementId');
+        
+        if (savedElements) {
+            elements = JSON.parse(savedElements);
+        }
+        
+        if (savedCounter) {
+            elementCounter = parseInt(savedCounter, 10);
+        }
+        
+        if (savedSelectedId && elements.length > 0) {
+            function findElementById(elements, id) {
+                for (let el of elements) {
+                    if (el.id === id) return el;
+                    if (el.children) {
+                        const found = findElementById(el.children, id);
+                        if (found) return found;
+                    }
+                }
+                return null;
+            }
+            selectedElement = findElementById(elements, savedSelectedId);
+        }
+    } catch (e) {
+        console.error('Failed to load from localStorage:', e);
+    }
+}
 function getDefaultText(tag) {
     const defaults = {
         'h1': 'Заголовок 1',
@@ -23,7 +69,7 @@ function canContainChildren(tag) {
 
     const voidElements = ['img', 'input', 'textarea', 'br', 'hr', 'meta', 'link'];
 
-    const textOnlyElements = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'a', 'label', 'button'];
+    const textOnlyElements = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'label', 'button'];
 
     return !voidElements.includes(tag) && !textOnlyElements.includes(tag);
 }
@@ -51,9 +97,18 @@ function addElement(tag) {
     if (!element.children) {
         element.children = [];
     }
-    elements.push(element);
+    
+    if (selectedElement && canContainChildren(selectedElement.tag)) {
+        if (!selectedElement.children) {
+            selectedElement.children = [];
+        }
+        selectedElement.children.push(element);
+    } else {
+        elements.push(element);
+    }
+    
+    saveToLocalStorage();
     renderPreview();
-    selectElement(element);
     updateCode();
 }
 function renderPreview() {
@@ -126,7 +181,7 @@ function renderPreview() {
                 li.textContent = 'Элемент списка';
                 realEl.appendChild(li);
             }
-        } else if (textOnlyElements.includes(el.tag) || (!el.children || el.children.length === 0)) {
+        } else if (!el.children || el.children.length === 0) {
             realEl.textContent = el.text;
         }
         
@@ -135,28 +190,6 @@ function renderPreview() {
     
     function renderElement(el, isChild = false) {
         const realEl = createRealElement(el);
-
-        const voidElements = ['img', 'input', 'textarea', 'br', 'hr'];
-        const textOnlyElements = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'a', 'label', 'button'];
-        if (voidElements.includes(el.tag)) {
-
-        } else if (el.tag === 'input' || el.tag === 'textarea') {
-            if (el.attributes.placeholder) {
-                realEl.placeholder = el.attributes.placeholder;
-            }
-            if (el.attributes.value) {
-                realEl.value = el.attributes.value;
-            }
-        } else if (el.tag === 'ul' || el.tag === 'ol') {
-
-            if (!el.children || el.children.length === 0) {
-                const li = document.createElement('li');
-                li.textContent = 'Элемент списка';
-                realEl.appendChild(li);
-            }
-        } else if (textOnlyElements.includes(el.tag) || (!el.children || el.children.length === 0)) {
-            realEl.textContent = el.text;
-        }
 
         const div = document.createElement('div');
         div.className = 'preview-item';
@@ -189,6 +222,7 @@ function deselectAll() {
 }
 function selectElement(element) {
     selectedElement = element;
+    saveToLocalStorage();
     renderPreview();
     renderProperties();
 }
@@ -243,7 +277,7 @@ function renderProperties() {
                         oninput="showStyleSuggestions(this.value)" 
                         onkeydown="handleStyleKeyInput(event)"
                         autocomplete="off">
-                    <div id="style-suggestions" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-radius: 4px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></div>
+                    <div id="style-suggestions" style="display: none; position: absolute; top: 100%; left: 0; right: 0; border: 1px solid #cbd5e1; border-radius: 4px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></div>
                 </div>
                 <input type="text" id="new-style-value" placeholder="Значение (например: 20px)" 
                     onkeydown="if(event.key === 'Enter') addStyle()">
@@ -282,6 +316,7 @@ function renderProperties() {
 function updateProperty(prop, value) {
     if (!selectedElement) return;
     selectedElement[prop] = value;
+    saveToLocalStorage();
     renderPreview();
     updateCode();
 }
@@ -291,6 +326,7 @@ function addClass() {
     if (className && !selectedElement.classes.includes(className)) {
         selectedElement.classes.push(className);
         input.value = '';
+        saveToLocalStorage();
         renderProperties();
         renderPreview();
         updateCode();
@@ -298,6 +334,7 @@ function addClass() {
 }
 function removeClass(index) {
     selectedElement.classes.splice(index, 1);
+    saveToLocalStorage();
     renderProperties();
     renderPreview();
     updateCode();
@@ -394,6 +431,7 @@ function addStyle() {
         document.getElementById('new-style-key').value = '';
         document.getElementById('new-style-value').value = '';
         document.getElementById('style-suggestions').style.display = 'none';
+        saveToLocalStorage();
         renderProperties();
         renderPreview();
         updateCode();
@@ -411,23 +449,27 @@ function updateStyleKey(oldIndex, newKey) {
     const value = selectedElement.styles[oldKey];
     delete selectedElement.styles[oldKey];
     selectedElement.styles[newKey] = value;
+    saveToLocalStorage();
     renderProperties();
     renderPreview();
     updateCode();
 }
 function updateStyleValue(key, value) {
     selectedElement.styles[key] = value;
+    saveToLocalStorage();
     renderPreview();
     updateCode();
 }
 function removeStyle(key) {
     delete selectedElement.styles[key];
+    saveToLocalStorage();
     renderProperties();
     renderPreview();
     updateCode();
 }
 function updateAttribute(key, value) {
     selectedElement.attributes[key] = value;
+    saveToLocalStorage();
     renderPreview();
     updateCode();
 }
@@ -448,6 +490,7 @@ function deleteElement() {
         removeFromChildren(el, selectedElement.id);
     });
     selectedElement = null;
+    saveToLocalStorage();
     renderPreview();
     renderProperties();
     updateCode();
@@ -456,6 +499,7 @@ function clearAll() {
     if (confirm('Удалить все элементы?')) {
         elements = [];
         selectedElement = null;
+        saveToLocalStorage();
         renderPreview();
         renderProperties();
         updateCode();

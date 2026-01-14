@@ -13,9 +13,19 @@ function initKeyboardNavigation() {
         const selectedElement = getSelectedElement();
         
         if (e.key === 'Delete' && selectedElement) {
-            e.preventDefault();
-            deleteElement();
-            return;
+            const activeElement = document.activeElement;
+            const isInputFocused = activeElement && (
+                activeElement.tagName === 'INPUT' ||
+                activeElement.tagName === 'TEXTAREA' ||
+                activeElement.tagName === 'SELECT' ||
+                activeElement.isContentEditable
+            );
+            
+            if (!isInputFocused) {
+                e.preventDefault();
+                deleteElement();
+                return;
+            }
         }
         
         if (!selectedElement) return;
@@ -95,6 +105,7 @@ function moveElementUp(element) {
         
         if (currentIndex > 0) {
             [children[currentIndex], children[currentIndex - 1]] = [children[currentIndex - 1], children[currentIndex]];
+            if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
             renderPreview();
             updateCode();
             selectElement(element);
@@ -104,6 +115,7 @@ function moveElementUp(element) {
         
         if (currentIndex > 0) {
             [elements[currentIndex], elements[currentIndex - 1]] = [elements[currentIndex - 1], elements[currentIndex]];
+            if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
             renderPreview();
             updateCode();
             selectElement(element);
@@ -121,6 +133,7 @@ function moveElementDown(element) {
         
         if (currentIndex < children.length - 1) {
             [children[currentIndex], children[currentIndex + 1]] = [children[currentIndex + 1], children[currentIndex]];
+            if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
             renderPreview();
             updateCode();
             selectElement(element);
@@ -130,6 +143,7 @@ function moveElementDown(element) {
         
         if (currentIndex < elements.length - 1) {
             [elements[currentIndex], elements[currentIndex + 1]] = [elements[currentIndex + 1], elements[currentIndex]];
+            if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
             renderPreview();
             updateCode();
             selectElement(element);
@@ -155,6 +169,7 @@ function moveElementIntoPrevious(element) {
                     previousElement.children = [];
                 }
                 previousElement.children.push(element);
+                if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
                 renderPreview();
                 updateCode();
                 selectElement(element);
@@ -173,6 +188,7 @@ function moveElementIntoPrevious(element) {
                             previousSibling.children = [];
                         }
                         previousSibling.children.push(element);
+                        if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
                         renderPreview();
                         updateCode();
                         selectElement(element);
@@ -194,6 +210,7 @@ function moveElementIntoPrevious(element) {
                     previousElement.children = [];
                 }
                 previousElement.children.push(element);
+                if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
                 renderPreview();
                 updateCode();
                 selectElement(element);
@@ -240,6 +257,7 @@ function moveElementOutOfContainer(element) {
             }
         }
         
+        if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
         renderPreview();
         updateCode();
         selectElement(element);

@@ -1,8 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
+    if (typeof loadFromLocalStorage === 'function') {
+        loadFromLocalStorage();
+    }
     if (typeof initKeyboardNavigation === 'function') {
         initKeyboardNavigation();
     }
     renderPreview();
+    if (typeof getSelectedElement === 'function' && getSelectedElement()) {
+        renderProperties();
+    }
     updateCode();
 
     document.addEventListener('click', (e) => {
