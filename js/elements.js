@@ -87,31 +87,54 @@ function renderPreview() {
         }
         return false;
     }
-    function renderElement(el, isChild = false) {
-
+    function createRealElement(el) {
         const realEl = document.createElement(el.tag);
-
+        
         if (el.classes.length > 0) {
             realEl.className = el.classes.join(' ');
         }
-
+        
         Object.keys(el.styles).forEach(key => {
             realEl.style[key] = el.styles[key];
         });
-
+        
         Object.keys(el.attributes).forEach(key => {
             realEl.setAttribute(key, el.attributes[key]);
         });
-
+        
         if (el.children && el.children.length > 0) {
-            const childrenContainer = document.createElement('div');
-            childrenContainer.className = 'children-container';
             el.children.forEach(child => {
-                const childDiv = renderElement(child, true);
-                childrenContainer.appendChild(childDiv);
+                const childRealEl = createRealElement(child);
+                realEl.appendChild(childRealEl);
             });
-            realEl.appendChild(childrenContainer);
         }
+        
+        const voidElements = ['img', 'input', 'textarea', 'br', 'hr'];
+        const textOnlyElements = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'a', 'label', 'button'];
+        
+        if (voidElements.includes(el.tag)) {
+        } else if (el.tag === 'input' || el.tag === 'textarea') {
+            if (el.attributes.placeholder) {
+                realEl.placeholder = el.attributes.placeholder;
+            }
+            if (el.attributes.value) {
+                realEl.value = el.attributes.value;
+            }
+        } else if (el.tag === 'ul' || el.tag === 'ol') {
+            if (!el.children || el.children.length === 0) {
+                const li = document.createElement('li');
+                li.textContent = 'Элемент списка';
+                realEl.appendChild(li);
+            }
+        } else if (textOnlyElements.includes(el.tag) || (!el.children || el.children.length === 0)) {
+            realEl.textContent = el.text;
+        }
+        
+        return realEl;
+    }
+    
+    function renderElement(el, isChild = false) {
+        const realEl = createRealElement(el);
 
         const voidElements = ['img', 'input', 'textarea', 'br', 'hr'];
         const textOnlyElements = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'a', 'label', 'button'];
@@ -334,20 +357,29 @@ function selectStyleSuggestion(property) {
 function handleStyleKeyInput(event) {
     const suggestionsDiv = document.getElementById('style-suggestions');
     if (!suggestionsDiv) return;
-    if (event.key === 'Enter') {
-
+    
+    if (event.key === 'Tab') {
+        event.preventDefault();
+        const firstSuggestion = suggestionsDiv.querySelector('.style-suggestion');
+        if (firstSuggestion && suggestionsDiv.style.display === 'block') {
+            const property = firstSuggestion.textContent.trim();
+            selectStyleSuggestion(property);
+            const valueInput = document.getElementById('new-style-value');
+            if (valueInput) {
+                valueInput.focus();
+            }
+        }
+    } else if (event.key === 'Enter') {
         const firstSuggestion = suggestionsDiv.querySelector('.style-suggestion');
         if (firstSuggestion && suggestionsDiv.style.display === 'block') {
             event.preventDefault();
             const property = firstSuggestion.textContent.trim();
             selectStyleSuggestion(property);
-
             const valueInput = document.getElementById('new-style-value');
             if (valueInput) {
                 valueInput.focus();
             }
         } else {
-
             addStyle();
         }
     } else if (event.key === 'Escape') {
